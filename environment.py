@@ -40,24 +40,35 @@ class GraphicDisplay(tk.Tk):
         return canvas
 
     def reset(self):
-        pass
+        self.player.environment.states = [[0] * WIDTH for _ in range(HEIGHT)]
+        self.update()
 
     def up(self):
-        HasChanged = self.player.environment.up()
-        if HasChanged:
+        new_states = copy.deepcopy(self.player.environment.states)
+        self.player.environment.up()
+        if self.player.environment.HasChanged(self.player.environment.states, new_states):
             self.player.environment.tick()
         self.update()
 
     def down(self):
+        new_states = copy.deepcopy(self.player.environment.states)
         self.player.environment.down()
+        if self.player.environment.HasChanged(self.player.environment.states, new_states):
+            self.player.environment.tick()
         self.update()
 
     def left(self):
+        new_states = copy.deepcopy(self.player.environment.states)
         self.player.environment.left()
+        if self.player.environment.HasChanged(self.player.environment.states, new_states):
+            self.player.environment.tick()
         self.update()
     
     def right(self):
+        new_states = copy.deepcopy(self.player.environment.states)
         self.player.environment.right()
+        if self.player.environment.HasChanged(self.player.environment.states, new_states):
+            self.player.environment.tick()
         self.update()
 
     def update(self):
@@ -108,12 +119,11 @@ class Environment:
         self.states[empty_state[0]][empty_state[1]] = 2
 
     def up(self):
-        new_states = copy.deepcopy(self.states)
         for column in range(WIDTH):
             new_column = []
             last_state = 0
             for row in range(HEIGHT):
-                state = new_states[column][row]
+                state = self.states[column][row]
                 if state > 0:
                     if last_state == state:
                         new_column[-1] += state
@@ -124,22 +134,35 @@ class Environment:
             for _ in range(HEIGHT - len(new_column)):
                 new_column.append(0)
 
-            new_states[column] = new_column
-        
+            self.states[column] = new_column
+    
+    def down(self):
+        self.states = self.rotate_cw(self.rotate_cw(self.states))
+        self.up()
+        self.states = self.rotate_cw(self.rotate_cw(self.states))
+    
+    def left(self):
+        self.states = self.rotate_cw(self.states)
+        self.up()
+        self.states = self.rotate_cw(self.rotate_cw(self.rotate_cw(self.states)))
+
+    def right(self):
+        self.states = self.rotate_cw(self.rotate_cw(self.rotate_cw(self.states)))
+        self.up()
+        self.states = self.rotate_cw(self.states)
+
+    def rotate_cw(self, states):
+        new_states = [[0] * WIDTH for _ in range(HEIGHT)]
+        new_states[0][0], new_states[1][0], new_states[2][0], new_states[3][0] = states[0][3], states[0][2], states[0][1], states[0][0]
+        new_states[0][1], new_states[1][1], new_states[2][1], new_states[3][1] = states[1][3], states[1][2], states[1][1], states[1][0]
+        new_states[0][2], new_states[1][2], new_states[2][2], new_states[3][2] = states[2][3], states[2][2], states[2][1], states[2][0]
+        new_states[0][3], new_states[1][3], new_states[2][3], new_states[3][3] = states[3][3], states[3][2], states[3][1], states[3][0]
+        return new_states
+
+    def HasChanged(self, old_states, new_states):
         for column in range(WIDTH):
             for row in range(HEIGHT):
                 if new_states[column][row] != self.states[column][row]:
-                    self.states = new_states
                     return True
-        
-        self.states = new_states
-        return False
-    
-    def down(self):
-        pass
-    
-    def left(self):
-        pass
 
-    def right(self):
-        pass
+        return False
